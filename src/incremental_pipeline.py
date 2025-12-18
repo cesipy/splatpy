@@ -10,15 +10,16 @@ print(pycolmap.has_cuda)
 DB_PATH = "database.db"
 FRAME_OVERLAP = 5
 SIFT_MAX_NUM_FEATURES = 512
-
+FRAME_PATH = "res/output/images"
 class COLMAP_Processor():
     def __init__(self, ):
         ...
 
     def extract_images(self,video_path: str, frames_modulo:int = 16):
-        frame_path = "/".join(video_path.split("/")[:-1]) + "/extracted_frames/"
+        # frame_path = "/".join(video_path.split("/")[:-1]) + "/extracted_frames/"
         assert os.path.exists(video_path), f"video path {video_path} does not exist"
         assert video_path.split(".")[-1].lower() in ["mp4", "avi", "mov"], "unsupported video format"
+        frame_path = FRAME_PATH
         os.makedirs(frame_path, exist_ok=True)
         vid = cv.VideoCapture(video_path)
 
@@ -103,8 +104,12 @@ class COLMAP_Processor():
         # dont remove, we need it for the latter gsplat generation.
         # shutil.rmtree(tmp_frame_path)
 
-cp = COLMAP_Processor()
-cp.create_colmap("res/input/test_video.MOV", frames_modulo=10, mode="sequential")
-reconst = COLMAP_Processor.load_reconstruction(path="res/output/sparse/0")
+    def clean_up(self):
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+
+# cp = COLMAP_Processor()
+# cp.create_colmap("res/input/test_video.MOV", frames_modulo=10, mode="sequential")
+# reconst = COLMAP_Processor.load_reconstruction(path="res/output/sparse/0")
 
 

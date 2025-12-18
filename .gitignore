@@ -5,3 +5,9 @@ res/input/extracted_frames
 */.DS_Store
 */__pycache__
 *__pycache__
+*.db
+*.pyc
+__pycache__/
+*.bin
+extracted_frames/
+.venv/

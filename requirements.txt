@@ -1,3 +1,10 @@
 gsplat
 pycolmap-cuda12
 opencv-python
+torch
+torchvision
+tqdm
+imageio[ffmpeg]
+numpy==1.26.4
+matplotlib
+scikit-learn

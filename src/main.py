@@ -1,5 +1,4 @@
-import os
+from utils.colmap_datahandling import Parser, Dataset, test
 
 
-import incremental_pipeline
-
+test()
