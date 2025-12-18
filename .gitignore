@@ -1,0 +1,7 @@
+res/input/test_video.MOV
+res/output
+res/input/extracted_frames
+*.DS_Store
+*/.DS_Store
+*/__pycache__
+*__pycache__

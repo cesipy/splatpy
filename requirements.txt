@@ -1,0 +1,3 @@
+gsplat
+pycolmap-cuda12
+opencv-python
