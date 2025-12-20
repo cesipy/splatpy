@@ -1,8 +1,9 @@
-gsplat
-pycolmap-cuda12
+git+https://github.com/nerfstudio-project/gsplat
+git+https://github.com/rahul-goel/fused-ssim/
+
+# pycolmap-cuda12
+pycolmap
 opencv-python
-torch
-torchvision
 tqdm
 imageio[ffmpeg]
 numpy==1.26.4
