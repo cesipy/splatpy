@@ -1,0 +1,41 @@
+[project]
+name = "splatpy"
+version = "0.1.0"
+description = "video to gaussian splat within minutes."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fused-ssim",
+  "gsplat",
+  "imageio[ffmpeg]>=2.37.2",
+  "matplotlib>=3.10.8",
+  "numpy==1.26.4",
+  "opencv-python>=4.11.0.86",
+  "pycolmap>=3.13.0",
+  "scikit-learn>=1.7.2",
+  "torch>=2.6.0",
+  "torchvision>=0.21.0",
+  "tqdm>=4.67.1",
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+]
+torchvision = [
+  { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+]
+gsplat = { git = "https://github.com/nerfstudio-project/gsplat" }
+fused-ssim = { git = "https://github.com/rahul-goel/fused-ssim/" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
