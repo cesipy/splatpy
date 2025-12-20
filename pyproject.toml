@@ -18,6 +18,9 @@ dependencies = [
   "tqdm>=4.67.1",
 ]
 
+[tool.uv]
+extra-build-dependencies = { gsplat = ["torch"], fused-ssim = ["torch"] }
+
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
