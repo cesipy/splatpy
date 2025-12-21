@@ -16,10 +16,15 @@ dependencies = [
   "torch>=2.6.0",
   "torchvision>=0.21.0",
   "tqdm>=4.67.1",
+  "setuptools",
 ]
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 
 [tool.uv]
-extra-build-dependencies = { gsplat = ["torch"], fused-ssim = ["torch"] }
+no-build-isolation-package = ["gsplat", "fused-ssim"]
 
 [tool.uv.sources]
 torch = [
