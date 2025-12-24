@@ -8,8 +8,8 @@ import pycolmap
 
 print(pycolmap.has_cuda)
 DB_PATH = "database.db"
-FRAME_OVERLAP = 5
-SIFT_MAX_NUM_FEATURES = 512
+FRAME_OVERLAP = 10
+SIFT_MAX_NUM_FEATURES = 2048
 FRAME_PATH = "res/output/images"
 class COLMAP_Processor():
     def __init__(self, ):
@@ -104,9 +104,19 @@ class COLMAP_Processor():
         # dont remove, we need it for the latter gsplat generation.
         # shutil.rmtree(tmp_frame_path)
 
+
     def clean_up(self):
+        # should be called at the start of a new run/ end of a run, cleans up all the code
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
+        #TODO: make this variable
+        # path1 = "res/output/images"
+        # path2 = "res/output/sparse"
+        # if os.path.exists(path1):
+        #     shutil.rmtree(path1)
+        # if os.path.exists(path2):
+        #     shutil.rmtree(path2)
+
 
 # cp = COLMAP_Processor()
 # cp.create_colmap("res/input/test_video.MOV", frames_modulo=10, mode="sequential")
