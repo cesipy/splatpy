@@ -107,7 +107,6 @@ class Parser:
             # Official pycolmap API
             rot = im.cam_from_world().rotation.matrix()
             trans = im.cam_from_world().translation.reshape(3, 1)
-            print(rot, trans)
             w2c = np.concatenate([np.concatenate([rot, trans], 1), bottom], axis=0)
             w2c_mats.append(w2c)
 
@@ -127,7 +126,6 @@ class Parser:
 
             # Get distortion parameters.
             type_ = cam.model.name
-            print(type_)
             if type_ == "SIMPLE_PINHOLE":
                 params = np.empty(0, dtype=np.float32)
                 camtype = "perspective"
@@ -252,7 +250,7 @@ class Parser:
             # Fix for up side down. We assume more points towards
             # the bottom of the scene which is true when ground floor is
             # present in the images.
-            if np.median(points[:, 2]) > np.mean(points[:, 2]):
+            if np.median(points[:, 2]) < np.mean(points[:, 2]):
                 # rotate 180 degrees around x axis such that z is flipped
                 T3 = np.array(
                     [

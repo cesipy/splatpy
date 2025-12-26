@@ -8,9 +8,10 @@ import pycolmap
 
 print(pycolmap.has_cuda)
 DB_PATH = "database.db"
-FRAME_OVERLAP = 10
-SIFT_MAX_NUM_FEATURES = 2048
+FRAME_OVERLAP = 20
+SIFT_MAX_NUM_FEATURES = 8192
 FRAME_PATH = "res/output/images"
+OUTPUT_PATH_SPARSE = "res/output/sparse"
 class COLMAP_Processor():
     def __init__(self, ):
         ...
@@ -96,10 +97,10 @@ class COLMAP_Processor():
 
         return reconst
 
-    def create_colmap(self,video_path:str, frames_modulo=20, mode="exhaustive"):
+    def create_colmap(self,video_path:str, frames_modulo=20, mode="exhaustive", output_path="res/output/sparse"):
         tmp_frame_path = self.extract_images(video_path, frames_modulo=frames_modulo)
         self.feature_extract_and_match(tmp_frame_path, mode=mode)
-        self.reconstruct(tmp_frame_path, output_path="res/output/sparse/")
+        self.reconstruct(tmp_frame_path, output_path=output_path)
 
         # dont remove, we need it for the latter gsplat generation.
         # shutil.rmtree(tmp_frame_path)
@@ -109,14 +110,17 @@ class COLMAP_Processor():
         # should be called at the start of a new run/ end of a run, cleans up all the code
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
-        #TODO: make this variable
-        # path1 = "res/output/images"
-        # path2 = "res/output/sparse"
-        # if os.path.exists(path1):
-        #     shutil.rmtree(path1)
-        # if os.path.exists(path2):
-        #     shutil.rmtree(path2)
+        #TODO: make this dynamic
+        path1 = FRAME_PATH
+        path2 = OUTPUT_PATH_SPARSE
+        if os.path.exists(path1):
+            shutil.rmtree(path1)
+        if os.path.exists(path2):
+            shutil.rmtree(path2)
 
+    def __del__(self):
+        print("in delete function")
+        self.clean_up()
 
 # cp = COLMAP_Processor()
 # cp.create_colmap("res/input/test_video.MOV", frames_modulo=10, mode="sequential")

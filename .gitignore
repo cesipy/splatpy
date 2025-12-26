@@ -1,6 +1,8 @@
 res/input/test_video.MOV
+res/input/*.mp4
 res/output
 res/input/extracted_frames
+res/results
 *.DS_Store
 */.DS_Store
 */__pycache__
@@ -11,3 +13,4 @@ __pycache__/
 *.bin
 extracted_frames/
 .venv/
+splatpy.egg-info

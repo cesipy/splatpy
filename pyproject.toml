@@ -17,6 +17,7 @@ dependencies = [
   "torchvision>=0.21.0",
   "tqdm>=4.67.1",
   "setuptools",
+  "lpips"
 ]
 [build-system]
 requires = ["setuptools>=61.0"]

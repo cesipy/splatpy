@@ -1,11 +1,18 @@
-
+import os
 from typing import Tuple, Dict, Optional, Literal
+from typing_extensions import Literal, assert_never
+import numpy as np
 import gsplat
 import torch
 import torch.nn.functional as F
+from tqdm import tqdm
+import imageio
+import numpy as np
+
+import lpips # perceptual loss
 
 from gsplat.rendering import rasterization
-from gsplat.strategy import DefaultStrategy
+from gsplat.strategy import DefaultStrategy, MCMCStrategy
 from fused_ssim import fused_ssim
 
 import incremental_pipeline
@@ -16,6 +23,7 @@ from utils.utils import create_splats_with_optimizers
 
 DATA_DIR    = "res/output/"
 RESULTS_DIR = "res/results/"
+VERBOSE     = False
 
 class Trainer():
     """
@@ -26,20 +34,21 @@ class Trainer():
     def __init__(
         self,
         config: TrainingConfig,
-
     ):
-        self.strategy = gsplat.strategy.DefaultStrategy(verbose=True)
+        self.config = config
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
         self.parser = Parser(
             data_dir=config.data_dir,
             factor=config.data_factor,
-            #TODO: those need to be done
+            normalize=True,
+            test_every=8,
         )
         self.dataset = Dataset(
             self.parser,
             split="train",
         )
         print(f"length of the dataset = {len(self.dataset)}")
-
 
         self.data_loader = torch.utils.data.DataLoader(
             self.dataset,
@@ -50,13 +59,30 @@ class Trainer():
             num_workers=4,
         )
 
+        # scene scale needed for strategy initialization
+        self.scene_scale = self.parser.scene_scale * 1.1
+        print(f"scene scale: {self.scene_scale}")
+
         feature_dim = None
         self.splats, self.optimizers = create_splats_with_optimizers(
-            parser=self.parser
-            #TODO: fix all of the settings here, maybe add to config
+            parser=self.parser,
+            init_type="sfm",
+            init_opacity=0.1,
+            init_scale=1.0,
+            scene_scale=self.scene_scale,
+            sh_degree=config.sh_degree,
+            feature_dim=feature_dim,
+            device=self.device,
         )
         print(f"number of splats: {len(self.splats['means'])}")
-        self.config = config
+
+        self.loss_fn_lpips = lpips.LPIPS(net="alex").to(self.device)
+
+        # initialize strategy
+        self.strategy = config.strategy
+        self.strategy_state = self.strategy.initialize_state(
+            scene_scale=self.scene_scale
+        )
 
     def __data_step(self):
         if not hasattr(self, "data_iterator"):
@@ -78,13 +104,14 @@ class Trainer():
         camera_model: Optional[Literal["pinhole", "ortho", "fisheye"]] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        #prepare the splat's current params
+        # prepare the splat's current params
         means = self.splats["means"]
         quats = self.splats["quats"]
         scales = torch.exp(self.splats["scales"])
         opacities = torch.sigmoid(self.splats["opacities"])
 
         image_ids = kwargs.pop("image_ids", None)
+        # TODO: implement appearance optimization
         # if self.cfg.app_opt:
         #     colors = self.app_module(
         #         features=self.splats["features"],
@@ -98,9 +125,9 @@ class Trainer():
         colors = torch.cat([self.splats["sh0"], self.splats["shN"]], 1)  # [N, K, 3]
 
         if rasterize_mode is None:
-            rasterize_mode = "classic"#"antialiased" if self.cfg.antialiased else "classic"
+            rasterize_mode = "classic"
         if camera_model is None:
-            camera_model = "pinhole"#self.cfg.camera_model
+            camera_model = "pinhole"
         render_colors, render_alphas, info = rasterization(
             means=means,
             quats=quats,
@@ -111,18 +138,8 @@ class Trainer():
             Ks=Ks,  # [C, 3, 3]
             width=width,
             height=height,
-            packed=False,#self.cfg.packed,
-            absgrad=(
-                self.config.strategy.absgrad
-                if isinstance(self.config.strategy, DefaultStrategy)
-                else False
-            ),
-            # sparse_grad=self.cfg.sparse_grad,
-            # rasterize_mode=rasterize_mode,
-            # distributed=self.world_size > 1,
-            # camera_model=self.cfg.camera_model,
-            # with_ut=self.cfg.with_ut,
-            # with_eval3d=self.cfg.with_eval3d,
+            packed=False,
+            absgrad=self.strategy.absgrad,
             **kwargs,
         )
         if masks is not None:
@@ -131,25 +148,21 @@ class Trainer():
 
 
     def train_step(self, step:int):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
         batch = self.__data_step()
-        Ks          = batch["K"].to(device) # [bs,3,3]
-        camtoworlds = batch["camtoworld"]   # [bs,4,4]
-        camtoworlds = camtoworlds.to(device)# [bs,4,4]
-        iamge       = batch["image"].to(device)\
-                            / 255.0         # [bs,h,w,3], normalize to [0,1]
-        # print(f"shape Ks: {Ks.shape}, camtoworlds: {camtoworlds.shape}, image: {iamge.shape}")
-        image_ids = batch["image_id"]
+        Ks          = batch["K"].to(self.device)        # [bs,3,3]
+        camtoworlds = batch["camtoworld"].to(self.device) # [bs,4,4]
+        image       = batch["image"].to(self.device) / 255.0  # [bs,h,w,3], normalize to [0,1]
+        image_ids   = batch["image_id"]
 
+        # sh schedule
+        sh_degree_to_use = min(step//self.config.sh_degree_interval, self.config.sh_degree)
 
-        #sh schedule
-        sh_degree_to_use = min(step//self.config.sh_degree_interval,self.config.sh_degree)
-        #forward pass
+        # forward pass
         renders, alpha, info = self.forward_pass(
             camtoworlds=camtoworlds,
             Ks=Ks,
-            width=iamge.shape[2],
-            height=iamge.shape[1],
+            width=image.shape[2],
+            height=image.shape[1],
             image_ids=image_ids,
             sh_degree=sh_degree_to_use,
         )
@@ -159,47 +172,217 @@ class Trainer():
         else:
             colors, depths = renders, None
 
-        l1loss = F.l1_loss(colors, iamge)
-        ssim_loss = 1.0 - fused_ssim(
-            colors.permute(0,3,1,2), iamge.permute(0,3,1,2), padding="valid",
+        # pre-backward hook
+        self.strategy.step_pre_backward(
+            params=self.splats,
+            optimizers=self.optimizers,
+            state=self.strategy_state,
+            step=step,
+            info=info,
         )
+
+        # compute loss
+        l1loss = F.l1_loss(colors, image)
+        ssim_loss = 1.0 - fused_ssim(
+            colors.permute(0,3,1,2), image.permute(0,3,1,2), padding="valid",
+        )
+        lpips_loss = self.loss_fn_lpips(
+            colors.permute(0,3,1,2) * 2 - 1,  # normalize to [-1,1]
+            image.permute(0,3,1,2) * 2 - 1
+        ).mean()
+
+
         # loss from og paper is l1 + ssim loss (perceptual + structure)
-        loss = (1.0-self.config.ssim_lambda)* l1loss + self.config.ssim_lambda * ssim_loss
+        # loss = (1.0-self.config.ssim_lambda)* l1loss + self.config.ssim_lambda * ssim_loss
+        loss = 0.8  * l1loss + 0.1 * ssim_loss + 0.1 * lpips_loss
 
         loss.backward()
+
         # optimize
         for optimizer in self.optimizers.values():
             optimizer.step()
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
+        for scheduler in self.schedulers:
+            scheduler.step()
 
+        # post-backward: densification (split/clone/prune)
+        self.strategy.step_post_backward(
+            params=self.splats,
+            optimizers=self.optimizers,
+            state=self.strategy_state,
+            step=step,
+            info=info,
+            packed=False,
+        )
+
+        return loss.item()
 
 
     def train(self, steps):
-        for i in range(steps):
-            self.train_step(step=i)
+
+        self.schedulers = [
+            # means has a learning rate schedule, that end at 0.01 of the initial value
+            torch.optim.lr_scheduler.ExponentialLR(
+                self.optimizers["means"], gamma=0.01 ** (1.0 / steps)
+            ),
+        ]
+        print(f"\ntraining for {steps} steps...")
+        pbar = tqdm(range(steps))
+        losses_buffer = []
+        for step in pbar:
+            loss = self.train_step(step=step)
+            losses_buffer.append(loss)
+            # update progress
+            if step % 100 == 0:
+                num_gs = len(self.splats['means'])
+                pbar.set_description(f"loss: {np.array(losses_buffer).mean():.4f} | gaussians: {num_gs}")
+                losses_buffer = []
+
+            if step % 2000 == 0:
+                means = self.splats["means"]
+                scales = self.splats["scales"]
+                quats = self.splats["quats"]
+                opacities = self.splats["opacities"]
+                sh0 = self.splats["sh0"]
+                shN = self.splats["shN"]
+                results_path = os.path.join(self.config.results_dir, f"step-{step}.ply")
+                os.makedirs(self.config.results_dir, exist_ok=True)
+                gsplat.export_splats(
+                    means=means,
+                    scales=scales,
+                    quats=quats,
+                    opacities=opacities,
+                    sh0=sh0,
+                    shN=shN,
+                    format="ply",
+                    save_to=results_path,
+                )
+
+
+
+        print(f"\ntraining complete! final num gaussians: {len(self.splats['means'])}")
+
+        means = self.splats["means"]
+        scales = self.splats["scales"]
+        quats = self.splats["quats"]
+        opacities = self.splats["opacities"]
+        sh0 = self.splats["sh0"]
+        shN = self.splats["shN"]
+
+
+        results_path = os.path.join(self.config.results_dir, f"final.ply")
+        os.makedirs(self.config.results_dir, exist_ok=True)
+        gsplat.export_splats(
+            means=means,
+            scales=scales,
+            quats=quats,
+            opacities=opacities,
+            sh0=sh0,
+            shN=shN,
+            format="ply",
+            save_to=results_path,
+        )
+    def render_orbit(self, num_frames: int = 120):
+        """Render 360° orbit around the scene."""
+
+
+        # compute scene center from camera positions
+        camera_positions = self.parser.camtoworlds[:, :3, 3]  # [N, 3]
+        scene_center = camera_positions.mean(axis=0)
+
+        # compute radius
+        radius = np.linalg.norm(camera_positions - scene_center, axis=1).mean()
+
+        # use first camera's intrinsics
+        K = torch.from_numpy(
+            list(self.parser.Ks_dict.values())[0]
+        ).float().unsqueeze(0).to(self.device)
+        width, height = list(self.parser.imsize_dict.values())[0]
+
+        # create orbit path
+        frames = []
+        with torch.no_grad():
+            for i in range(num_frames):
+                angle = 2 * np.pi * i / num_frames
+                r_factor = 1.8
+                # camera position on circle
+                cam_pos = scene_center + np.array([
+                    r_factor *radius * np.cos(angle),
+                    r_factor *radius * np.sin(angle),
+                    scene_center[2] /6 # keep same height
+                ])
+
+                # look at center
+                # copy_cam_pos = cam_pos.copy()
+                # copy_cam_pos[2] += 0.8*cam_pos[2] # slight downward angle
+                # forward = scene_center - (copy_cam_pos)
+                # forward = forward / np.linalg.norm(forward)
+                target = scene_center.copy()
+                target += np.array([0,0,0.6])
+                forward = target - cam_pos
+                forward = forward / np.linalg.norm(forward)
+
+                # up vector
+                up = np.array([0, 0, 1])
+                right = np.cross(up, forward)
+                right = right / np.linalg.norm(right)
+                up = np.cross(forward, right)
+
+                # build camera-to-world matrix
+                camtoworld = np.eye(4)
+                camtoworld[:3, 0] = right
+                camtoworld[:3, 1] = up
+                camtoworld[:3, 2] = forward
+                camtoworld[:3, 3] = cam_pos
+
+                camtoworld = torch.from_numpy(camtoworld).float().unsqueeze(0).to(self.device)
+
+                # render
+                renders, _, _ = self.forward_pass(
+                    camtoworlds=camtoworld,
+                    Ks=K,
+                    width=width,
+                    height=height,
+                    sh_degree=self.config.sh_degree,
+                )
+
+                frame = renders[0].cpu().numpy()
+                frame = np.clip(frame * 255, 0, 255).astype(np.uint8)
+                frames.append(frame)
+
+        # save video
+        output_path = os.path.join(self.config.results_dir, "orbit.mp4")
+        imageio.mimsave(output_path, frames, fps=30)
 
 
     def eval(self):
+        # TODO: implement evaluation
         ...
 
 
 
 
 def main():
-    video_path = "res/input/test_video.MOV"
-    ip = incremental_pipeline.COLMAP_Processor()
-
-    ip.create_colmap(video_path, frames_modulo=10, mode="sequential")
-    ip.clean_up()
-    config = TrainingConfig(data_dir=DATA_DIR, data_factor=1, results_dir=RESULTS_DIR)
-    trainer = Trainer(config=config)
-    trainer.train(10)
 
 
+    try:
+        # video_path = "res/input/test_video.MOV"
+        # video_path = "res/input/house.mp4"
+        # video_path = "res/results/kirche-absam.mp4"
+        video_path = "res/input/bishopstone.mp4"
+        ip = incremental_pipeline.COLMAP_Processor()
+        ip.clean_up()
+        ip.create_colmap(video_path, frames_modulo=20, mode="sequential")
 
-
-
-
+        # step 2: train
+        config = TrainingConfig(data_dir=DATA_DIR, data_factor=1, results_dir=RESULTS_DIR,)
+        trainer = Trainer(config=config)
+        trainer.train(100000)
+        trainer.render_orbit(num_frames=240)
+    except Exception as e:
+        raise e
+    finally:
+        ip.clean_up()
 
 
 
