@@ -1,6 +1,6 @@
 import os
 import shutil
-from config import *
+from .config import *
 
 import cv2 as cv
 import sqlite3

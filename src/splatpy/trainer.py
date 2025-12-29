@@ -15,10 +15,10 @@ from gsplat.rendering import rasterization
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
 from fused_ssim import fused_ssim
 
-import incremental_pipeline
-from config import TrainingConfig
-from utils.colmap_datahandling import Parser, Dataset
-from utils.utils import create_splats_with_optimizers
+from . import incremental_pipeline
+from .config import TrainingConfig
+from .utils.colmap_datahandling import Parser, Dataset
+from .utils.utils import create_splats_with_optimizers
 
 
 DATA_DIR    = "res/output/"

@@ -1,8 +1,8 @@
 import os
-import incremental_pipeline
-from config import TrainingConfig
-from trainer import Trainer, DATA_DIR, RESULTS_DIR
-from utils.colmap_datahandling import Parser, Dataset, test
+from . import incremental_pipeline
+from .config import TrainingConfig
+from .trainer import Trainer, DATA_DIR, RESULTS_DIR
+from .utils.colmap_datahandling import Parser, Dataset, test
 
 
 def video_to_gsplat(path: str):
@@ -22,6 +22,3 @@ def video_to_gsplat(path: str):
     finally:
         ip.clean_up()
 
-def main():
-    video_path = "res/input/bishopstone.mp4"
-    video_to_gsplat(video_path)
