@@ -1,7 +1,5 @@
 git+https://github.com/nerfstudio-project/gsplat
 git+https://github.com/rahul-goel/fused-ssim/
-
-# pycolmap-cuda12
 pycolmap
 opencv-python
 tqdm
