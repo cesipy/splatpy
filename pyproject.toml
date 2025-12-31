@@ -5,8 +5,8 @@ description = "video to gaussian splat within minutes."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "fused-ssim",
-  "gsplat",
+  "gsplat @ git+https://github.com/nerfstudio-project/gsplat",
+  "fused-ssim @ git+https://github.com/rahul-goel/fused-ssim/",
   "imageio[ffmpeg]>=2.37.2",
   "matplotlib>=3.10.8",
   "numpy==1.26.4",
@@ -19,6 +19,21 @@ dependencies = [
   "setuptools",
   "lpips"
 ]
+# dependencies = [
+#   "fused-ssim",
+#   "gsplat",
+#   "imageio[ffmpeg]>=2.37.2",
+#   "matplotlib>=3.10.8",
+#   "numpy==1.26.4",
+#   "opencv-python>=4.11.0.86",
+#   "pycolmap>=3.13.0",
+#   "scikit-learn>=1.7.2",
+#   "torch>=2.6.0",
+#   "torchvision>=0.21.0",
+#   "tqdm>=4.67.1",
+#   "setuptools",
+#   "lpips"
+# ]
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
