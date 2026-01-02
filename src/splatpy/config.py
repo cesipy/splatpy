@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Union
+from typing import Union, Literal
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
+
+# QualityPreset = Literal["low", "medium", "high", "ultra"]
+
 
 @dataclass
 class TrainingConfig:
@@ -44,3 +47,46 @@ class TrainingConfig:
     strategy: Union[DefaultStrategy, MCMCStrategy] = field(
         default_factory=DefaultStrategy
     )
+
+class QualityPreset:
+    def __init__(self, quality: str):
+        valid_qualities = ["low", "medium", "high", "ultra"]
+        if quality not in valid_qualities:
+            raise ValueError(f"Quality must be one of {valid_qualities}, got '{quality}'")
+        self.quality = quality
+        self.__set_preset(quality)
+
+    def __set_preset(self, quality:str):
+        if quality == "low":
+            self.steps = 10_000
+            self.frames_modulo = 30
+            self.data_factor = 4
+            self.sh_degree = 2
+            self.description = "Fast preview quality - good for testing"
+
+        elif quality == "medium":
+            self.steps = 30_000
+            self.frames_modulo = 20
+            self.data_factor = 2
+            self.sh_degree = 3
+            self.description = "Balanced quality and speed"
+
+        elif quality == "high":
+            self.steps = 50_000
+            self.frames_modulo = 15
+            self.data_factor = 1
+            self.sh_degree = 3
+            self.description = "High quality results"
+
+        elif quality == "ultra":
+            self.steps = 100_000
+            self.frames_modulo = 10
+            self.data_factor = 1
+            self.sh_degree = 3
+            self.description = "Maximum quality - slow but best results"
+        self.name = quality
+
+def get_quality_preset(quality: QualityPreset):
+    preset = QualityPreset(quality)
+    return preset
+
