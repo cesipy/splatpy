@@ -2,14 +2,14 @@ import os
 from typing import Optional, Literal
 from . import incremental_pipeline
 from .config import TrainingConfig, QualityPreset, get_quality_preset
-from .trainer import Trainer, DATA_DIR, RESULTS_DIR
+from .trainer import Trainer
 from .utils.colmap_datahandling import Parser, Dataset, test
 
 
 def video_to_splat(
     video_path: str,
     quality: str = "medium",
-    output_dir: str = RESULTS_DIR,
+    output_dir: str = "results",
     render_orbit: bool = True,
     orbit_frames: int = 240
 ) -> str:
@@ -39,29 +39,29 @@ def video_to_splat(
         raise FileNotFoundError(f"Video path '{video_path}' does not exist")
 
     preset = get_quality_preset(quality)
-    print(f"\nUsing quality preset '{quality.name}': {preset.description}")
+    print(f"\nUsing quality preset '{quality}': {preset.description}")
     print(f"  - Training steps: {preset.steps:,}")
     print(f"  - Frame extraction: every {preset.frames_modulo} frames")
     print(f"  - Image downscaling: {preset.data_factor}x")
     print(f"  - SH degree: {preset.sh_degree}\n")
 
-    ip = incremental_pipeline.COLMAP_Processor()
+    config = TrainingConfig(
+        data_factor=preset.data_factor,
+        results_dir=output_dir,
+        sh_degree=preset.sh_degree,
+    )
+
+    ip = incremental_pipeline.COLMAP_Processor(save_dir=config.colmap_data_dir)
     try:
         ip.clean_up()
         ip.create_colmap(
             video_path,
-            frames_modulo=preset["frames_modulo"],
+            frames_modulo=preset.frames_modulo,
             mode="sequential"
         )
 
-        config = TrainingConfig(
-            data_dir=DATA_DIR,
-            data_factor=preset["data_factor"],
-            results_dir=output_dir,
-            sh_degree=preset["sh_degree"]
-        )
         trainer = Trainer(config=config)
-        trainer.train(preset["steps"])
+        trainer.train(preset.steps)
 
         if render_orbit:
             trainer.render_orbit(num_frames=orbit_frames)
@@ -77,7 +77,7 @@ def video_to_splat(
 
 def video_to_splat_advanced(
     video_path: str,
-    output_dir: str = RESULTS_DIR,
+    output_dir: str = "results",
     training_steps: int = 30_000,
     frames_modulo: int = 20,
     data_factor: int = 1,
@@ -93,6 +93,9 @@ def video_to_splat_advanced(
 ) -> str:
     """Convert a video to a 3D Gaussian Splat.
     adcanced function allowing fine-tuning of training parameters.
+
+    Either call with custom values directly (`video_to_splat_advanced(video_path, trainig_step=<val>)`)
+    or call with a config (see splatpy.TrainingConfig).
 
     Args:
         video_path: Path to input video file (mp4, avi, or mov)
@@ -125,20 +128,12 @@ def video_to_splat_advanced(
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Video path '{video_path}' does not exist")
 
-    ip = incremental_pipeline.COLMAP_Processor()
     try:
-        ip.clean_up()
-        ip.create_colmap(
-            video_path,
-            frames_modulo=frames_modulo,
-            mode=colmap_mode
-        )
-
         if custom_config is not None:
             config = custom_config
         else:
             config = TrainingConfig(
-                data_dir=DATA_DIR,
+                data_dir="res/output/images/",
                 data_factor=data_factor,
                 results_dir=output_dir,
                 sh_degree=sh_degree,
@@ -147,6 +142,14 @@ def video_to_splat_advanced(
                 opacities_lr=opacities_lr,
                 quats_lr=quats_lr
             )
+        ip = incremental_pipeline.COLMAP_Processor(save_dir=config.colmap_data_dir)
+        ip.clean_up()
+        ip.create_colmap(
+            video_path,
+            frames_modulo=frames_modulo,
+            mode=colmap_mode
+        )
+
 
         trainer = Trainer(config=config)
         trainer.train(training_steps)

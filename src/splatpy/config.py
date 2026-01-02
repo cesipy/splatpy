@@ -3,15 +3,17 @@ from dataclasses import field
 from typing import Union, Literal
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
 
-# QualityPreset = Literal["low", "medium", "high", "ultra"]
-
 
 @dataclass
 class TrainingConfig:
-    data_dir: str = "res/output/"       # where the colmap is stored
+    colmap_data_dir: str = ".splatpy_dir"
+
+    data_dir: str = "res/output/images/"       # where the colmap is stored
     data_factor:int = 1                 # downscaling factor for images
     results_dir: str = "res/results/"   # where to store results
 
+    # the configuration below is mainly the same as in
+    # https://github.com/nerfstudio-project/gsplat/blob/b60e917c95afc449c5be33a634f1f457e116ff5e/examples/simple_trainer.py#L44
     batch_size:int = 1
     # LR for 3D point positions
     means_lr: float = 1.6e-4
@@ -60,14 +62,14 @@ class QualityPreset:
         if quality == "low":
             self.steps = 10_000
             self.frames_modulo = 30
-            self.data_factor = 4
+            self.data_factor = 1
             self.sh_degree = 2
             self.description = "Fast preview quality - good for testing"
 
         elif quality == "medium":
             self.steps = 30_000
             self.frames_modulo = 20
-            self.data_factor = 2
+            self.data_factor = 1
             self.sh_degree = 3
             self.description = "Balanced quality and speed"
 
