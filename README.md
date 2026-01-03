@@ -15,11 +15,24 @@
 - Python 3.10+
 - FFmpeg
 
+**⚠️ Note:** Due to CUDA requirements, this package cannot be installed via `pip install splatpy`.
+Please follow the instructions below.
+
+
 ### Using uv (recommended)
 ```bash
 uv sync --python 3.10
 source .venv/bin/activate
 python src/main.py
+```
+
+### Development
+```bash
+# Install with dev dependencies (to run tests)
+uv sync --python 3.10 --all-extras
+
+# Run all tests
+pytest
 ```
 
 ### Using pip
@@ -129,6 +142,10 @@ src/splatpy/
 - [ ] Automatically detect number of frames extracted from video
 - [ ] Add evaluation metrics (PSNR, SSIM, LPIPS)
 - [ ] Support for image folder input (not just video)
+- [ ] CLI tool
+- [ ] Dockerize
+- [ ] pylint
+
 ## 🙏 Acknowledgments
 
 Built with:

@@ -213,6 +213,15 @@ class Parser:
             image_files = sorted(_get_rel_paths(image_dir))
         colmap_to_image = dict(zip(colmap_files, image_files))
         image_paths = [os.path.join(image_dir, colmap_to_image[f]) for f in image_names]
+        # build image paths w/ fallback for missing files(e.g., when downsampling not applied)
+        # image_paths = []
+        # for f in image_names:
+        #     if f in colmap_to_image:
+        #         image_paths.append(os.path.join(image_dir, colmap_to_image[f]))
+        #     else:
+        #         # Fallback: use direct path when file not in mapping
+        #         image_paths.append(os.path.join(image_dir, f))
+
 
         # 3D points - official pycolmap API
         points = np.array([p.xyz for p in reconstruction.points3D.values()], dtype=np.float32)
