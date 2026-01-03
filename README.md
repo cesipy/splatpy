@@ -129,12 +129,19 @@ src/splatpy/
 - [ ] Automatically detect number of frames extracted from video
 - [ ] Add evaluation metrics (PSNR, SSIM, LPIPS)
 - [ ] Support for image folder input (not just video)
+- [ ] Automatic downscaling of images
+
+
 ## 🙏 Acknowledgments
 
 Built with:
 - [gsplat](https://github.com/nerfstudio-project/gsplat) - 3D Gaussian Splatting
 - [COLMAP](https://colmap.github.io/) - Structure-from-Motion
 - [PyTorch](https://pytorch.org/) - Deep Learning Framework
+
+Test video:
+- "House 360 Aerial Orbit" by [Aerial Photography & Drone Video](https://www.youtube.com/watch?v=zvpMpzBh0Y8)
+
 
 ---
 

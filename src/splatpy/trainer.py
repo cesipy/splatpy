@@ -21,8 +21,7 @@ from .utils.colmap_datahandling import Parser, Dataset
 from .utils.utils import create_splats_with_optimizers
 
 
-DATA_DIR    = "res/output/images"
-RESULTS_DIR = "res/results/"
+
 VERBOSE     = False
 
 class Trainer():
@@ -359,33 +358,3 @@ class Trainer():
     def eval(self):
         # TODO: implement evaluation
         ...
-
-
-
-
-def main():
-
-
-    try:
-        # video_path = "res/input/test_video.MOV"
-        # video_path = "res/input/house.mp4"
-        # video_path = "res/results/kirche-absam.mp4"
-        video_path = "res/input/bishopstone.mp4"
-        ip = incremental_pipeline.COLMAP_Processor()
-        ip.clean_up()
-        ip.create_colmap(video_path, frames_modulo=20, mode="sequential")
-
-        # step 2: train
-        config = TrainingConfig(data_dir=DATA_DIR, data_factor=1, results_dir=RESULTS_DIR,)
-        trainer = Trainer(config=config)
-        trainer.train(100000)
-        trainer.render_orbit(num_frames=240)
-    except Exception as e:
-        raise e
-    finally:
-        ip.clean_up()
-
-
-
-if __name__ == "__main__":
-    main()

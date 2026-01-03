@@ -60,24 +60,24 @@ class QualityPreset:
 
     def __set_preset(self, quality:str):
         if quality == "low":
-            self.steps = 10_000
+            self.steps = 5_000
             self.frames_modulo = 30
-            self.data_factor = 1
-            self.sh_degree = 2
+            self.sh_degree = 3
+            self.sift_features = 512
             self.description = "Fast preview quality - good for testing"
 
         elif quality == "medium":
-            self.steps = 30_000
+            self.steps = 20_000
             self.frames_modulo = 20
-            self.data_factor = 1
             self.sh_degree = 3
+            self.sift_features = 2048
             self.description = "Balanced quality and speed"
 
         elif quality == "high":
             self.steps = 50_000
             self.frames_modulo = 15
-            self.data_factor = 1
             self.sh_degree = 3
+            self.sift_features = 4096
             self.description = "High quality results"
 
         elif quality == "ultra":
@@ -85,6 +85,7 @@ class QualityPreset:
             self.frames_modulo = 10
             self.data_factor = 1
             self.sh_degree = 3
+            self.sift_features = 8192
             self.description = "Maximum quality - slow but best results"
         self.name = quality
 

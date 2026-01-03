@@ -57,8 +57,8 @@ class COLMAP_Processor():
     ):
         extract_options = pycolmap.FeatureExtractionOptions()       # sfittFeatureExtractionOptions is inside of featureextractoptions
         extract_options.use_gpu = True
-        extract_options.sift.max_num_features = SIFT_MAX_NUM_FEATURES
-        # extract_options.max_num_features = SIFT_MAX_NUM_FEATURES
+        extract_options.sift.max_num_features = sift_num_max_features
+
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         pycolmap.extract_features(
             database_path=self.db_path,
@@ -109,9 +109,15 @@ class COLMAP_Processor():
 
         return reconst
 
-    def create_colmap(self,video_path:str, frames_modulo=20, mode="exhaustive",):
+    def create_colmap(
+        self,
+        video_path:str,
+        frames_modulo=20,
+        mode="exhaustive",
+        sift_num_max_features:int=4096,
+    ):
         tmp_frame_path = self.extract_images(video_path, frames_modulo=frames_modulo)
-        self.feature_extract_and_match(tmp_frame_path, mode=mode)
+        self.feature_extract_and_match(tmp_frame_path, mode=mode, sift_num_max_features=sift_num_max_features)
         self.reconstruct(tmp_frame_path,)
         # dont remove, we need it for the latter gsplat generation.
         # shutil.rmtree(tmp_frame_path)

@@ -42,11 +42,10 @@ def video_to_splat(
     print(f"\nUsing quality preset '{quality}': {preset.description}")
     print(f"  - Training steps: {preset.steps:,}")
     print(f"  - Frame extraction: every {preset.frames_modulo} frames")
-    print(f"  - Image downscaling: {preset.data_factor}x")
+    # print(f"  - Image downscaling: {preset.data_factor}x")
     print(f"  - SH degree: {preset.sh_degree}\n")
 
     config = TrainingConfig(
-        data_factor=preset.data_factor,
         results_dir=output_dir,
         sh_degree=preset.sh_degree,
     )
@@ -57,7 +56,8 @@ def video_to_splat(
         ip.create_colmap(
             video_path,
             frames_modulo=preset.frames_modulo,
-            mode="sequential"
+            mode="sequential",
+            sift_num_max_features=preset.sift_features,
         )
 
         trainer = Trainer(config=config)
@@ -78,7 +78,7 @@ def video_to_splat(
 def video_to_splat_advanced(
     video_path: str,
     output_dir: str = "results",
-    training_steps: int = 30_000,
+    training_steps: int = 25_000,
     frames_modulo: int = 20,
     data_factor: int = 1,
     colmap_mode: Literal["sequential", "exhaustive"] = "sequential",
@@ -89,6 +89,7 @@ def video_to_splat_advanced(
     quats_lr: float = 1e-3,
     render_orbit: bool = True,
     orbit_frames: int = 240,
+    sift_max_num_features: int = 4096,
     custom_config: Optional[TrainingConfig] = None
 ) -> str:
     """Convert a video to a 3D Gaussian Splat.
@@ -147,9 +148,9 @@ def video_to_splat_advanced(
         ip.create_colmap(
             video_path,
             frames_modulo=frames_modulo,
-            mode=colmap_mode
+            mode=colmap_mode,
+            sift_num_max_features=sift_max_num_features,
         )
-
 
         trainer = Trainer(config=config)
         trainer.train(training_steps)
