@@ -21,8 +21,7 @@ from .utils.colmap_datahandling import Parser, Dataset
 from .utils.utils import create_splats_with_optimizers
 
 
-DATA_DIR    = "res/output/"
-RESULTS_DIR = "res/results/"
+
 VERBOSE     = False
 
 class Trainer():
@@ -37,9 +36,11 @@ class Trainer():
     ):
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"parser data dir: {config.colmap_data_dir}")
 
         self.parser = Parser(
-            data_dir=config.data_dir,
+            # data_dir=os.path.join(config.colmap_data_dir,"images"),
+            data_dir=config.colmap_data_dir,
             factor=config.data_factor,
             normalize=True,
             test_every=8,
@@ -269,7 +270,6 @@ class Trainer():
         sh0 = self.splats["sh0"]
         shN = self.splats["shN"]
 
-
         results_path = os.path.join(self.config.results_dir, f"final.ply")
         os.makedirs(self.config.results_dir, exist_ok=True)
         gsplat.export_splats(
@@ -282,9 +282,9 @@ class Trainer():
             format="ply",
             save_to=results_path,
         )
+
     def render_orbit(self, num_frames: int = 120):
         """Render 360° orbit around the scene."""
-
 
         # compute scene center from camera positions
         camera_positions = self.parser.camtoworlds[:, :3, 3]  # [N, 3]
@@ -358,33 +358,3 @@ class Trainer():
     def eval(self):
         # TODO: implement evaluation
         ...
-
-
-
-
-def main():
-
-
-    try:
-        # video_path = "res/input/test_video.MOV"
-        # video_path = "res/input/house.mp4"
-        # video_path = "res/results/kirche-absam.mp4"
-        video_path = "res/input/bishopstone.mp4"
-        ip = incremental_pipeline.COLMAP_Processor()
-        ip.clean_up()
-        ip.create_colmap(video_path, frames_modulo=20, mode="sequential")
-
-        # step 2: train
-        config = TrainingConfig(data_dir=DATA_DIR, data_factor=1, results_dir=RESULTS_DIR,)
-        trainer = Trainer(config=config)
-        trainer.train(100000)
-        trainer.render_orbit(num_frames=240)
-    except Exception as e:
-        raise e
-    finally:
-        ip.clean_up()
-
-
-
-if __name__ == "__main__":
-    main()

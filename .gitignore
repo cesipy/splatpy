@@ -9,8 +9,12 @@ res/results
 *__pycache__
 *.db
 *.pyc
-__pycache__/
 *.bin
 extracted_frames/
 .venv/
-splatpy.egg-info
+*splatpy.egg-info
+results
+.splatpy_dir
+.python-version
+uv.lock
+.coverage
