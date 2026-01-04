@@ -51,19 +51,26 @@ class TrainingConfig:
     )
 
 class QualityPreset:
-    def __init__(self, quality: str):
-        valid_qualities = ["low", "medium", "high", "ultra"]
+    def __init__(self, quality:str):
+        valid_qualities = ["test","low", "medium", "high", "ultra"]
         if quality not in valid_qualities:
             raise ValueError(f"Quality must be one of {valid_qualities}, got '{quality}'")
         self.quality = quality
         self.__set_preset(quality)
 
     def __set_preset(self, quality:str):
-        if quality == "low":
-            self.steps = 5_000
+        if quality == "test":
+            self.steps = 1_000
+            self.sh_degree = 2
+            self.frames_modulo = 30
+            self.sift_features = 256
+            self.description = "Quick test run"
+
+        elif quality == "low":
+            self.steps = 10_000
             self.frames_modulo = 30
             self.sh_degree = 3
-            self.sift_features = 512
+            self.sift_features = 1024
             self.description = "Fast preview quality - good for testing"
 
         elif quality == "medium":

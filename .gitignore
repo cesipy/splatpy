@@ -16,3 +16,5 @@ extracted_frames/
 results
 .splatpy_dir
 .python-version
+uv.lock
+.coverage
