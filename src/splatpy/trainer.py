@@ -13,7 +13,8 @@ import lpips # perceptual loss
 
 from gsplat.rendering import rasterization
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
-from fused_ssim import fused_ssim
+# from fused_ssim import fused_ssim
+from pytorch_msssim import ssim, 
 
 from . import incremental_pipeline
 from .config import TrainingConfig
@@ -184,9 +185,11 @@ class Trainer():
 
         # compute loss
         l1loss = F.l1_loss(colors, image)
-        ssim_loss = 1.0 - fused_ssim(
-            colors.permute(0,3,1,2), image.permute(0,3,1,2), padding="valid",
-        )
+        # fused_ssim needs to build from source, so it does work with the philosophy of this project
+        # ssim_loss = 1.0 - fused_ssim(
+        #     colors.permute(0,3,1,2), image.permute(0,3,1,2), padding="valid",
+        # )
+        ssim_loss = 1.0 - ssim(colors.permute(0,3,1,2), image.permute(0,3,1,2), data_range=1.0, size_average=True)
         lpips_loss = self.loss_fn_lpips(
             colors.permute(0,3,1,2) * 2 - 1,  # normalize to [-1,1]
             image.permute(0,3,1,2) * 2 - 1
