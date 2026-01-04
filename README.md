@@ -8,12 +8,19 @@
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
 </p>
 
+<p align="center">
+  <img src="res/assets/comparison.gif" width="90%" alt="Splatpy Comparison">
+  <br>
+  <small><b>Left:</b> Input Video | <b>Right:</b> 3D Gaussian Splat Result</small>
+</p>
+
 ## Installation
 
 **Requirements:**
-- CUDA 12.4+
-- Python 3.10+
-- FFmpeg
+- **NVIDIA Driver:** Compatible with CUDA 12.4+ (Driver version ≥ 550.54 on Linux / ≥ 551.61 on Windows)
+- **CUDA Toolkit:** 12.4+ (required for compilation)
+- **Python:** 3.10+
+- **FFmpeg**
 
 **⚠️ Note:** Due to CUDA requirements, this package cannot be installed via `pip install splatpy`.
 Please follow the instructions below.
@@ -25,17 +32,9 @@ uv sync --python 3.10
 source .venv/bin/activate
 python src/main.py
 ```
-
-### Development
-```bash
-# Install with dev dependencies (to run tests)
-uv sync --python 3.10 --all-extras
-
-# Run all tests
-pytest
-```
-
 ### Using pip
+Install `torch` manually with the correct CUDA version, then install `splatpy` from source:
+
 ```bash
 python3.10 -m venv venv
 source venv/bin/activate
@@ -45,7 +44,12 @@ pip install --no-build-isolation git+https://github.com/cesipy/splatpy.git
 
 Note: `--no-build-isolation` is required because gsplat and fused-ssim need PyTorch during compilation.
 
+
 ## Quick Start
+The following video formats are supported:
+- MP4 (`.mp4`)
+- AVI (`.avi`)
+- MOV (`.mov`)
 
 ### Simple Usage (Recommended)
 
@@ -58,10 +62,11 @@ print(f"Splat saved to: {output}")
 ```
 
 Quality presets:
-- `"low"`: Fast preview (10k steps, ~5-10 min)
-- `"medium"`: Balanced quality (30k steps, ~15-20 min) **[default]**
-- `"high"`: High quality (50k steps, ~25-35 min)
-- `"ultra"`: Maximum quality (100k steps, ~45-60 min)
+- `"test"`: Quick test run (1k steps, frames_modulo=30, sift_features=256)
+- `"low"`: Fast preview (10k steps, frames_modulo=30, sift_features=1024)
+- `"medium"`: Balanced quality (20k steps, frames_modulo=20, sift_features=2048) **[default]**
+- `"high"`: High quality (50k steps, frames_modulo=15, sift_features=4096)
+- `"ultra"`: Maximum quality (100k steps, frames_modulo=10, sift_features=8192)
 
 ### Advanced Usage
 
@@ -115,11 +120,23 @@ output = video_to_splat_advanced(
 The pipeline is straightforward:
 
 1. **Frame extraction** - sample frames from input video at regular intervals
-2. **COLMAP** - feature extraction, matching, and sparse reconstruction
+2. **COLMAP**  - Structure-from-Motion (SfM) to estimate camera poses and a sparse point cloud.
 3. **Training** - optimize 3D Gaussians using differentiable rasterization
 4. **Export** - save as .ply files compatible with standard viewers
 
 Training uses a combination of L1, SSIM, and LPIPS losses. The Gaussians are initialized from COLMAP's sparse point cloud.
+
+## Development
+For Development you need extra dependencies (e.g. pytest):
+```bash
+# Install with dev dependencies (to run tests)
+uv sync --python 3.10 --all-extras
+
+# Run all tests
+pytest
+```
+
+Bugs, issues, and contributions are welcome!
 
 ## Project structure
 ```
