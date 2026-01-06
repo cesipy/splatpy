@@ -215,10 +215,7 @@ class TestTraining:
         config = TrainingConfig(colmap_data_dir=str(colmap_dir))
         trainer = Trainer(config=config)
 
-        # Mock gradient computation components for unit testing
-        mocker.patch.object(torch.Tensor, 'backward')
-        mocker.patch.object(trainer.strategy, 'step_post_backward')
-
+        # Strategy is now mocked via mock_all_gpu_operations fixture
         trainer.train(steps=3)
         assert trainer.splats["means"] is not None
         assert trainer.splats["scales"] is not None
@@ -250,10 +247,7 @@ class TestTraining:
         )
         trainer = Trainer(config=config)
 
-        # Mock gradient computation components for unit testing
-        mocker.patch.object(torch.Tensor, 'backward')
-        mocker.patch.object(trainer.strategy, 'step_post_backward')
-
+        # Strategy is now mocked via mock_all_gpu_operations fixture
         # Train for just 10 steps
         trainer.train(steps=10)
 
@@ -286,10 +280,7 @@ class TestTraining:
         )
         trainer = Trainer(config=config)
 
-        # Mock gradient computation components for unit testing
-        mocker.patch.object(torch.Tensor, 'backward')
-        mocker.patch.object(trainer.strategy, 'step_post_backward')
-
+        # Strategy is now mocked via mock_all_gpu_operations fixture
         trainer.train(steps=4001)
         assert (results_dir / "step-2000.ply").exists()
         assert (results_dir / "step-4000.ply").exists()

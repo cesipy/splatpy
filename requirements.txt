@@ -1,9 +1,0 @@
-git+https://github.com/nerfstudio-project/gsplat
-git+https://github.com/rahul-goel/fused-ssim/
-pycolmap
-opencv-python
-tqdm
-imageio[ffmpeg]
-numpy==1.26.4
-matplotlib
-scikit-learn

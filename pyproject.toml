@@ -1,9 +1,11 @@
 [project]
 name = "splatpy"
-version = "0.1.0"
+version = "0.1.1"
 description = "video to gaussian splat within minutes."
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [{ name = "cesipy" }]
+license = { text = "MIT" }
 dependencies = [
   # apparently pip cannot install from git + uv yet; also the extra-build.dependencies are not supported yet
   #"gsplat @ git+https://github.com/nerfstudio-project/gsplat",

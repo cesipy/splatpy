@@ -34,7 +34,7 @@ class TestRealVideoWorkflow:
         # mocker.patch.object(DefaultStrategy, 'step_post_backward', return_value=None)
         output_path = video_to_splat(
             str(house_video),
-            quality="test",  # Low quality = fast
+            quality="test",
             output_dir=str(temp_dir / "output"),
             render_orbit=False
         )
@@ -61,7 +61,7 @@ class TestRealVideoWorkflow:
         output_path = video_to_splat_advanced(
             str(house_video),
             training_steps=10,  # Very minimal for fast test
-            frames_modulo=30,   # Extract few frames
+            extraction_rate=0.05,   # Extract few frames
             colmap_mode="sequential",
             sh_degree=2,
             render_orbit=False
@@ -95,7 +95,7 @@ class TestRealVideoWorkflow:
             str(house_video),
             custom_config=custom_config,
             training_steps=10,
-            frames_modulo=30,
+            extraction_rate=0.1,
             render_orbit=False
         )
 

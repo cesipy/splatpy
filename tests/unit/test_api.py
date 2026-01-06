@@ -228,14 +228,14 @@ class TestVideoToSplatAdvanced:
         call_kwargs = mock_processor.create_colmap.call_args[1]
         assert call_kwargs["mode"] == "exhaustive"
 
-    def test_frames_modulo_parameter(
+    def test_extraction_rate_parameter(
         self,
         temp_dir,
         mock_all_pycolmap,
         mock_all_gpu_operations,
         mocker
     ):
-        """Test frames_modulo parameter controls frame extraction."""
+        """Test extraction_rate parameter controls frame extraction."""
         video_path = temp_dir / "test.mp4"
         video_path.touch()
 
@@ -246,7 +246,7 @@ class TestVideoToSplatAdvanced:
         )
         mocker.patch("splatpy.api.Trainer", return_value=mocker.MagicMock())
 
-        video_to_splat_advanced(str(video_path), frames_modulo=15)
+        video_to_splat_advanced(str(video_path), extraction_rate=0.20)
 
         call_kwargs = mock_processor.create_colmap.call_args[1]
-        assert call_kwargs["frames_modulo"] == 15
+        assert call_kwargs["extraction_rate"] == 0.20

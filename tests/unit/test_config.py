@@ -9,11 +9,12 @@ class TestTrainingConfig:
 
     def test_default_initialization(self):
         """Test creating TrainingConfig with defaults."""
+        # this is trivial, claude code implemented this...
         config = TrainingConfig()
         assert config.data_factor == 1
         assert config.batch_size == 1
         assert config.sh_degree == 3
-        assert isinstance(config.strategy, DefaultStrategy)
+        assert config.strategy == "default"
         assert config.colmap_data_dir == ".splatpy_dir"
 
     def test_custom_initialization(self):
@@ -39,26 +40,22 @@ class TestTrainingConfig:
         assert config.sh0_lr > 0
         assert config.shN_lr > 0
 
-    def test_mcmc_strategy(self):
-        """Test initialization with MCMC strategy."""
-        config = TrainingConfig(strategy=MCMCStrategy())
-        assert isinstance(config.strategy, MCMCStrategy)
 
 
 class TestQualityPreset:
     """Test QualityPreset class."""
 
-    @pytest.mark.parametrize("quality,expected_steps,expected_modulo,expected_sh", [
-        ("low", 10_000, 30, 3),
-        ("medium", 20_000, 20, 3),
-        ("high", 50_000, 15, 3),
-        ("ultra", 100_000, 10, 3),
+    @pytest.mark.parametrize("quality,expected_steps,expected_extraction_rate,expected_sh", [
+        ("low", 7_000, 0.10, 3),
+        ("medium", 15_000, 0.15, 3),
+        ("high", 28_000, 0.25, 3),
+        ("ultra", 35_000, 0.35, 3),
     ])
-    def test_preset_parameters(self, quality, expected_steps, expected_modulo, expected_sh):
+    def test_preset_parameters(self, quality, expected_steps, expected_extraction_rate, expected_sh):
         """Test that presets have correct parameters."""
         preset = QualityPreset(quality)
         assert preset.steps == expected_steps
-        assert preset.frames_modulo == expected_modulo
+        assert preset.extraction_rate == expected_extraction_rate
         assert preset.sh_degree == expected_sh
         assert preset.name == quality
 

@@ -40,7 +40,7 @@ class TestExtractImages:
 
         frame_path = processor.extract_images(
             str(video_path),
-            frames_modulo=5
+            extraction_rate=0.20
         )
 
         # Verify frames were extracted
@@ -56,7 +56,7 @@ class TestExtractImages:
         video_path.touch()
 
         # Should not raise assertion error
-        processor.extract_images(str(video_path), frames_modulo=10)
+        processor.extract_images(str(video_path), extraction_rate=0.10)
 
     @pytest.mark.parametrize("extension", ["txt", "png", "jpg", "mkv", "webm"])
     def test_invalid_video_formats_raise_error(self, temp_dir, mock_all_io, extension):
@@ -92,30 +92,42 @@ class TestExtractImages:
         with pytest.raises(IOError, match="Couldn't open video file"):
             processor.extract_images(str(video_path))
 
-    def test_frames_modulo_logic(self, temp_dir, mocker):
-        """Test frame extraction sampling logic with frames_modulo."""
+    def test_extraction_rate_logic(self, temp_dir, mocker):
+        """Test frame extraction logic with extraction_rate and variance-based selection."""
         processor = COLMAP_Processor(save_dir=str(temp_dir / "colmap"))
 
         video_path = temp_dir / "test.mp4"
         video_path.touch()
 
         # Mock VideoCapture to return specific number of frames
-        frames_returned = []
-
         class MockVideoCapture:
             def __init__(self, path):
                 self.frame_idx = 0
-                self.total_frames = 30
+                self.total_frames = 100
+                self.was_reset = False
+
+            def get(self, prop):
+                # CAP_PROP_FRAME_COUNT
+                return self.total_frames
 
             def isOpened(self):
                 return True
 
             def read(self):
                 if self.frame_idx < self.total_frames:
-                    self.frame_idx += 1
                     frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                    # Add some content to specific frames to vary Laplacian variance
+                    if self.frame_idx % 20 == 10:
+                        frame[100:200, 100:200] = 255
+                    self.frame_idx += 1
                     return True, frame
                 return False, None
+
+            def set(self, prop, value):
+                # Reset to start for second pass
+                if prop == 1:  # CAP_PROP_POS_FRAMES
+                    self.frame_idx = 0
+                    self.was_reset = True
 
             def release(self):
                 pass
@@ -124,18 +136,27 @@ class TestExtractImages:
 
         # Mock cv2.imwrite to track which frames are saved
         saved_frames = []
-
         def mock_imwrite(path, frame):
             saved_frames.append(path)
-
         mocker.patch("cv2.imwrite", side_effect=mock_imwrite)
 
-        # Extract every 5th frame from 30 frames
-        processor.extract_images(str(video_path), frames_modulo=5)
+        # Mock Laplacian to return predictable variance values
+        def mock_laplacian(frame, dtype):
+            result = np.zeros_like(frame[:,:,0], dtype=np.float64)
+            # High variance for frames with white squares (indices 10, 30, 50, 70, 90)
+            if frame[100, 100, 0] == 255:
+                result = np.full_like(result, 1000.0, dtype=np.float64)
+            else:
+                result = np.full_like(result, 10.0, dtype=np.float64)
+            return result
+        mocker.patch("cv2.Laplacian", side_effect=mock_laplacian)
 
-        # Should save frames at indices 4, 9, 14, 19, 24, 29 (0-indexed)
-        # That's 6 frames total
-        assert len(saved_frames) == 6
+        # Extract 10% of 100 frames = 10 frames
+        processor.extract_images(str(video_path), extraction_rate=0.10)
+
+        # Should save approximately 10 frames (10% of 100)
+        # The exact number depends on bucketing logic
+        assert len(saved_frames) >= 8  # Allow some variance due to bucketing
 
     def test_empty_video_no_frames(self, temp_dir, mocker):
         """Test handling of video with zero frames."""
@@ -153,6 +174,17 @@ class TestExtractImages:
 
             def read(self):
                 return False, None  # No frames
+
+            def get(self, prop):
+                """Get video property (mimics cv2.VideoCapture.get)."""
+                # prop 7 is CV_CAP_PROP_FRAME_COUNT
+                if prop == 7:
+                    return 0
+                return None
+
+            def set(self, prop, value):
+                """Set video property (mimics cv2.VideoCapture.set)."""
+                pass
 
             def release(self):
                 pass
@@ -369,7 +401,7 @@ class TestCreateCOLMAP:
 
         processor.create_colmap(
             str(video_path),
-            frames_modulo=10,
+            extraction_rate=0.10,
             mode="sequential"
         )
 

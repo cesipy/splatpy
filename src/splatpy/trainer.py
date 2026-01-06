@@ -1,4 +1,6 @@
 import os
+import sys
+
 from typing import Tuple, Dict, Optional, Literal
 from typing_extensions import Literal, assert_never
 import numpy as np
@@ -14,7 +16,7 @@ import lpips # perceptual loss
 from gsplat.rendering import rasterization
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
 # from fused_ssim import fused_ssim
-from pytorch_msssim import ssim, 
+from pytorch_msssim import ssim
 
 from . import incremental_pipeline
 from .config import TrainingConfig
@@ -52,13 +54,19 @@ class Trainer():
         )
         print(f"length of the dataset = {len(self.dataset)}")
 
+        # use num_workers=0 in test environments to avoid "too many open files" errors
+        # check if we're in a test environment by looking for pytest
+        is_testing = 'pytest' in sys.modules
+        num_workers = 0 if is_testing else 4
+        persistent_workers = False if is_testing or num_workers == 0 else True
+
         self.data_loader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=config.batch_size,
             shuffle=True,
             pin_memory=True,
-            persistent_workers=True,
-            num_workers=4,
+            persistent_workers=persistent_workers,
+            num_workers=num_workers,
         )
 
         # scene scale needed for strategy initialization
@@ -79,12 +87,9 @@ class Trainer():
         print(f"number of splats: {len(self.splats['means'])}")
 
         self.loss_fn_lpips = lpips.LPIPS(net="alex").to(self.device)
+        self.strategy = None
 
-        # initialize strategy
-        self.strategy = config.strategy
-        self.strategy_state = self.strategy.initialize_state(
-            scene_scale=self.scene_scale
-        )
+
 
     def __data_step(self):
         if not hasattr(self, "data_iterator"):
@@ -130,6 +135,11 @@ class Trainer():
             rasterize_mode = "classic"
         if camera_model is None:
             camera_model = "pinhole"
+
+        # handle case when strategy is not initialized (e.g., for rendering without training)
+        # but should not be the case normally
+        absgrad = self.strategy.absgrad if self.strategy is not None else False
+
         render_colors, render_alphas, info = rasterization(
             means=means,
             quats=quats,
@@ -141,7 +151,7 @@ class Trainer():
             width=width,
             height=height,
             packed=False,
-            absgrad=self.strategy.absgrad,
+            absgrad=absgrad,
             **kwargs,
         )
         if masks is not None:
@@ -221,8 +231,38 @@ class Trainer():
 
         return loss.item()
 
+    def _init_strategy(self, steps:int):
+        # same as in gsplat: 500 of 30000 steps to start refinement
+        refine_start_iter = max(int(steps * 5./300.), 1)
+        refine_stop_iter  = max(int(steps * 0.5), 1)
+        refine_every      = max(int(steps * 1./300.), 1)
+        reset_every       = max(int(steps * 1./10.), 1)
 
-    def train(self, steps):
+        if self.config.strategy == "default":
+            self.strategy = DefaultStrategy(
+                refine_start_iter=refine_start_iter,
+                refine_stop_iter=refine_stop_iter,
+                refine_every=refine_every,
+                reset_every=reset_every,
+            )
+        elif self.config.strategy == "mcmc":
+            self.strategy = MCMCStrategy(
+                refine_start_iter=refine_start_iter,
+                refine_stop_iter=refine_stop_iter,
+                refine_every=refine_every,
+                reset_every=reset_every,
+                # num_samples=50,
+                # acceptance_ratio=0.5,
+            )
+        else:
+            raise ValueError(f"Unknown strategy: {self.config.strategy}")
+        self.strategy_state = self.strategy.initialize_state(
+            scene_scale=self.scene_scale
+        )
+
+
+    def train(self, steps:int):
+        self._init_strategy(steps)
 
         self.schedulers = [
             # means has a learning rate schedule, that end at 0.01 of the initial value

@@ -13,6 +13,7 @@ from tests.fixtures.gpu_mocks import (
     mock_pycolmap_operations,
     mock_video_io,
     mock_image_io,
+    mock_gsplat_strategies,
 )
 from tests.fixtures.mock_colmap_data import create_mock_reconstruction
 
@@ -78,6 +79,7 @@ def mock_all_gpu_operations(mocker):
         "lpips": mock_lpips_loss(mocker),
         "ssim": mock_fused_ssim(mocker),
         "export": mock_gsplat_export(mocker),
+        "strategies": mock_gsplat_strategies(mocker),
     }
 
 

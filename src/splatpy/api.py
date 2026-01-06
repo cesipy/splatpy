@@ -19,10 +19,10 @@ def video_to_splat(
     Args:
         video_path: Path to input video file (mp4, avi, or mov)
         quality: Quality preset - one of "low", "medium", "high", "ultra"
-            - "low": Fast preview (10k steps, ~5-10 min)
-            - "medium": Balanced quality (30k steps, ~15-20 min) [default]
-            - "high": High quality (50k steps, ~25-35 min)
-            - "ultra": Maximum quality (100k steps, ~45-60 min)
+            - "low": Fast preview (10k steps, ~10-15min)
+            - "medium": Balanced quality (30k steps, ~20-30 min) [default]
+            - "high": High quality (50k steps, ~45-60 min)
+            - "ultra": Maximum quality (100k steps, ~60-120 min)
         output_dir: Directory to save results (default: "res/results/")
         render_orbit: Whether to render a 360° orbit video (default: True)
         orbit_frames: Number of frames in orbit video (default: 240)
@@ -41,7 +41,7 @@ def video_to_splat(
     preset = get_quality_preset(quality)
     print(f"\nUsing quality preset '{quality}': {preset.description}")
     print(f"  - Training steps: {preset.steps:,}")
-    print(f"  - Frame extraction: every {preset.frames_modulo} frames")
+    print(f"  - Frame extraction: {preset.extraction_rate*100:.0f}% of frames")
     # print(f"  - Image downscaling: {preset.data_factor}x")
     print(f"  - SH degree: {preset.sh_degree}\n")
 
@@ -55,7 +55,7 @@ def video_to_splat(
         ip.clean_up()
         ip.create_colmap(
             video_path,
-            frames_modulo=preset.frames_modulo,
+            extraction_rate=preset.extraction_rate,
             mode="sequential",
             sift_num_max_features=preset.sift_features,
         )
@@ -79,7 +79,7 @@ def video_to_splat_advanced(
     video_path: str,
     output_dir: str = "results",
     training_steps: int = 25_000,
-    frames_modulo: int = 20,
+    extraction_rate: float = 0.15,
     data_factor: int = 1,
     colmap_mode: Literal["sequential", "exhaustive"] = "sequential",
     sh_degree: int = 3,
@@ -102,7 +102,7 @@ def video_to_splat_advanced(
         video_path: Path to input video file (mp4, avi, or mov)
         output_dir: Directory to save results
         training_steps: Number of training iterations
-        frames_modulo: Extract every Nth frame from video (lower = more frames = better quality but slower)
+        extraction_rate: Percentage of frames to extract (0.1 = 10%, 0.5 = 50%). Lower values = faster but may miss details. Higher values = better quality but slower processing.
         data_factor: Image downscaling factor (1 = full res, 2 = half res, etc.)
         colmap_mode: COLMAP matching mode - "sequential" (fast) or "exhaustive" (slow but thorough)
         sh_degree: Spherical harmonics degree for appearance (0-3, higher = more detail)
@@ -122,7 +122,7 @@ def video_to_splat_advanced(
         >>> output = video_to_splat_advanced(
         ...     "my_video.mp4",
         ...     training_steps=50_000,
-        ...     frames_modulo=10,
+        ...     extraction_rate=0.10,
         ...     data_factor=1
         ... )
     """
@@ -147,7 +147,7 @@ def video_to_splat_advanced(
         ip.clean_up()
         ip.create_colmap(
             video_path,
-            frames_modulo=frames_modulo,
+            extraction_rate=extraction_rate,
             mode=colmap_mode,
             sift_num_max_features=sift_max_num_features,
         )

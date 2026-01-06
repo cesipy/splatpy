@@ -30,7 +30,7 @@ class TestCOLMAPPipelineIntegration:
         processor = COLMAP_Processor(save_dir=str(temp_dir / "colmap"))
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=10,
+            extraction_rate=0.10,
             mode="sequential"
         )
 
@@ -43,7 +43,7 @@ class TestCOLMAPPipelineIntegration:
         mock_all_pycolmap["match_sequential"].assert_called()
         mock_all_pycolmap["incremental_mapping"].assert_called()
 
-    def test_pipeline_with_different_frames_modulo(
+    def test_pipeline_with_different_extraction_rates(
         self,
         temp_dir,
         synthetic_video,
@@ -61,10 +61,10 @@ class TestCOLMAPPipelineIntegration:
 
         processor = COLMAP_Processor(save_dir=str(temp_dir / "colmap"))
 
-        # Test with high frame modulo (few frames)
+        # Test with low extraction rate (few frames)
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=20,  # Only ~1-2 frames from 30-frame video
+            extraction_rate=0.20,  # Extract 20% (~6 frames from 30-frame video)
             mode="sequential"
         )
 
@@ -91,7 +91,7 @@ class TestCOLMAPPipelineIntegration:
         processor = COLMAP_Processor(save_dir=str(temp_dir / "colmap_seq"))
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=10,
+            extraction_rate=0.10,
             mode="sequential"
         )
         mock_all_pycolmap["match_sequential"].assert_called()
@@ -105,7 +105,7 @@ class TestCOLMAPPipelineIntegration:
         processor = COLMAP_Processor(save_dir=str(temp_dir / "colmap_exh"))
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=10,
+            extraction_rate=0.10,
             mode="exhaustive"
         )
         mock_all_pycolmap["match_exhaustive"].assert_called()
@@ -135,7 +135,7 @@ class TestCOLMAPPipelineIntegration:
         # Should handle short video without crashing
         processor.create_colmap(
             str(short_video),
-            frames_modulo=1,  # Extract all 3 frames
+            extraction_rate=1.0,  # Extract all 3 frames
             mode="sequential"
         )
 
@@ -162,7 +162,7 @@ class TestCOLMAPPipelineIntegration:
 
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=10,
+            extraction_rate=0.10,
             mode="sequential"
         )
 
@@ -197,19 +197,19 @@ class TestCOLMAPPipelineIntegration:
         # Should complete without error (COLMAP handles this internally)
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=10,
+            extraction_rate=0.10,
             mode="sequential"
         )
 
     @pytest.mark.slow
-    def test_pipeline_with_high_frames_modulo(
+    def test_pipeline_with_very_high_extraction_rate(
         self,
         temp_dir,
         synthetic_video,
         mock_all_pycolmap,
         mocker
     ):
-        """Test pipeline with very high frames_modulo (extracting only 2 frames)."""
+        """Test pipeline with very high extraction rate (extracting 30% of frames)."""
         mock_cursor = mocker.MagicMock()
         mock_cursor.fetchone.return_value = (1,)
         mock_conn = mocker.MagicMock()
@@ -220,10 +220,10 @@ class TestCOLMAPPipelineIntegration:
 
         processor = COLMAP_Processor(save_dir=str(temp_dir / "colmap"))
 
-        # With 30-frame video and frames_modulo=25, only 2 frames extracted
+        # With 30-frame video and extraction_rate=0.30, extract ~9 frames
         processor.create_colmap(
             str(synthetic_video),
-            frames_modulo=25,
+            extraction_rate=0.30,
             mode="sequential"
         )
 
@@ -251,7 +251,7 @@ class TestCOLMAPErrorHandling:
         with pytest.raises(RuntimeError, match="Feature extraction failed"):
             processor.create_colmap(
                 str(synthetic_video),
-                frames_modulo=10,
+                extraction_rate=0.10,
                 mode="sequential"
             )
 
@@ -272,7 +272,7 @@ class TestCOLMAPErrorHandling:
         try:
             processor.create_colmap(
                 str(synthetic_video),
-                frames_modulo=10,
+                extraction_rate=0.10,
                 mode="sequential"
             )
         except RuntimeError:

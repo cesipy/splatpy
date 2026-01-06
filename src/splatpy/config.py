@@ -4,6 +4,10 @@ from typing import Union, Literal
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
 
 
+# Default image extraction rate as percentage (0.05 = 5% of frames)
+IMAGES_EXTRACTION_RATE = 0.10  # 10% default
+
+
 @dataclass
 class TrainingConfig:
     colmap_data_dir: str = ".splatpy_dir"
@@ -45,10 +49,14 @@ class TrainingConfig:
     # Weight for SSIM loss
     ssim_lambda = 0.2
 
-    # Strategy for GS densification
-    strategy: Union[DefaultStrategy, MCMCStrategy] = field(
-        default_factory=DefaultStrategy
-    )
+    # # Strategy for GS densification
+    # strategy: Union[DefaultStrategy, MCMCStrategy] = field(
+    #     default_factory=DefaultStrategy
+    # )
+    strategy: str = "default"  # "default" or "mcmc"
+
+    def __post_init__(self):
+        assert self.strategy in ["default", "mcmc"], "strategy must be either 'default' or 'mcmc'"
 
 class QualityPreset:
     def __init__(self, quality:str):
@@ -62,37 +70,36 @@ class QualityPreset:
         if quality == "test":
             self.steps = 1_000
             self.sh_degree = 2
-            self.frames_modulo = 30
+            self.extraction_rate = 0.05
             self.sift_features = 256
             self.description = "Quick test run"
 
         elif quality == "low":
-            self.steps = 10_000
-            self.frames_modulo = 30
-            self.sh_degree = 3
-            self.sift_features = 1024
-            self.description = "Fast preview quality - good for testing"
-
-        elif quality == "medium":
-            self.steps = 20_000
-            self.frames_modulo = 20
+            self.steps = 7_000
+            self.extraction_rate = 0.05
             self.sh_degree = 3
             self.sift_features = 2048
+            self.description = "Fast results with decent quality"
+
+        elif quality == "medium":
+            self.steps = 15_000
+            self.extraction_rate = 0.1
+            self.sh_degree = 3
+            self.sift_features = 4096
             self.description = "Balanced quality and speed"
 
         elif quality == "high":
-            self.steps = 50_000
-            self.frames_modulo = 15
+            self.steps = 28_000
+            self.extraction_rate = 0.2
             self.sh_degree = 3
-            self.sift_features = 4096
+            self.sift_features = 8192
             self.description = "High quality results"
 
         elif quality == "ultra":
-            self.steps = 100_000
-            self.frames_modulo = 10
-            self.data_factor = 1
+            self.steps = 35_000
+            self.extraction_rate = 0.35
             self.sh_degree = 3
-            self.sift_features = 8192
+            self.sift_features = 16_384
             self.description = "Maximum quality - slow but best results"
         self.name = quality
 

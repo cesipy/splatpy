@@ -28,17 +28,33 @@ def mock_gsplat_rendering(mocker):
         means = kwargs.get("means")
         num_gaussians = len(means) if means is not None else 1000
 
-        # Return mock outputs - don't set requires_grad on outputs
-        # The gradients will be tracked through the computation graph naturally
-        renders = torch.rand(batch_size, height, width, 3)
+        # Create outputs that maintain gradient flow from inputs
+        # Use a trivial computation involving the input parameters to ensure gradients flow
+        means_input = kwargs.get("means")
+        colors_input = kwargs.get("colors")
+
+        # Create renders with gradient flow from inputs
+        if means_input is not None and means_input.requires_grad:
+            # Trivial computation: sum all means and add to random base
+            # This maintains gradient connection
+            base_render = torch.rand(batch_size, height, width, 3, requires_grad=False)
+            mean_contribution = means_input.mean() * 0.0  # multiplied by 0 so it doesn't affect values
+            renders = base_render + mean_contribution
+        else:
+            renders = torch.rand(batch_size, height, width, 3)
+
+        if colors_input is not None and colors_input.requires_grad:
+            # Add color contribution (also scaled by 0 to not affect output)
+            color_contribution = colors_input.mean() * 0.0
+            renders = renders + color_contribution
+
         alphas = torch.rand(batch_size, height, width, 1)
 
         # Create gradient tracking tensors for strategy
-        # Use a computation to create non-leaf tensors that can retain grad
-        means_input = kwargs.get("means")
         if means_input is not None and means_input.requires_grad:
-            # Create means2d as a function of means to maintain gradient flow
-            means2d = (means_input[:, :2] * 0.0 + 1.0) * torch.rand(batch_size, num_gaussians, 2)
+            # Create means2d with gradient flow
+            means2d_base = torch.rand(batch_size, num_gaussians, 2, requires_grad=False)
+            means2d = means2d_base + means_input[:, :2].mean() * 0.0
             means2d = means2d.detach().requires_grad_(True)
         else:
             means2d = torch.rand(batch_size, num_gaussians, 2)
@@ -101,7 +117,7 @@ def mock_fused_ssim(mocker):
         return torch.tensor(0.9)
 
     # Patch at the location where it's imported in trainer.py
-    return mocker.patch("splatpy.trainer.fused_ssim", side_effect=mock_ssim)
+    return mocker.patch("splatpy.trainer.ssim", side_effect=mock_ssim)
 
 
 def mock_gsplat_export(mocker):
@@ -201,6 +217,19 @@ def mock_video_io(mocker, num_frames=30):
                 return True, frame
             return False, None
 
+        def get(self, prop):
+            """Get video property (mimics cv2.VideoCapture.get)."""
+            # prop 7 is CV_CAP_PROP_FRAME_COUNT
+            if prop == 7:
+                return self.total_frames
+            return None
+
+        def set(self, prop, value):
+            """Set video property (mimics cv2.VideoCapture.set)."""
+            # prop 1 is CV_CAP_PROP_POS_FRAMES
+            if prop == 1:
+                self.frame_idx = int(value)
+
         def release(self):
             pass
 
@@ -234,4 +263,45 @@ def mock_image_io(mocker):
         "imread": mock_read,
         "imwrite": mock_write,
         "mimsave": mock_video,
+    }
+
+
+def mock_gsplat_strategies(mocker):
+    """Mock gsplat strategy classes for testing.
+
+    Args:
+        mocker: pytest-mock fixture
+
+    Returns:
+        Dict of mocked strategy classes
+    """
+    class MockStrategy:
+        """Mock strategy that does nothing but tracks calls."""
+
+        def __init__(self, *args, **kwargs):
+            self.refine_start_iter = kwargs.get('refine_start_iter', 500)
+            self.refine_stop_iter = kwargs.get('refine_stop_iter', 15000)
+            self.refine_every = kwargs.get('refine_every', 100)
+            self.reset_every = kwargs.get('reset_every', 3000)
+            self.absgrad = False
+
+        def initialize_state(self, scene_scale=1.0):
+            """Initialize empty state dict."""
+            return {}
+
+        def step_pre_backward(self, params, optimizers, state, step, info):
+            """Mock pre-backward step - do nothing."""
+            pass
+
+        def step_post_backward(self, params, optimizers, state, step, info, packed=False):
+            """Mock post-backward step - do nothing."""
+            pass
+
+    # Mock both DefaultStrategy and MCMCStrategy
+    mock_default = mocker.patch("splatpy.trainer.DefaultStrategy", MockStrategy)
+    mock_mcmc = mocker.patch("splatpy.trainer.MCMCStrategy", MockStrategy)
+
+    return {
+        "DefaultStrategy": mock_default,
+        "MCMCStrategy": mock_mcmc,
     }
