@@ -46,10 +46,10 @@ class TestQualityPreset:
     """Test QualityPreset class."""
 
     @pytest.mark.parametrize("quality,expected_steps,expected_extraction_rate,expected_sh", [
-        ("low", 7_000, 0.10, 3),
-        ("medium", 15_000, 0.15, 3),
-        ("high", 28_000, 0.25, 3),
-        ("ultra", 35_000, 0.35, 3),
+        ("low", 7_000, 0.05, 3),
+        ("medium", 15_000, 0.1, 3),
+        ("high", 28_000, 0.2, 3),
+        ("ultra", 35_000, 0.4, 3),
     ])
     def test_preset_parameters(self, quality, expected_steps, expected_extraction_rate, expected_sh):
         """Test that presets have correct parameters."""

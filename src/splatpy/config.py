@@ -71,12 +71,14 @@ class QualityPreset:
             self.steps = 1_000
             self.sh_degree = 2
             self.extraction_rate = 0.05
+            self.similarity_threshold = 0.95
             self.sift_features = 256
             self.description = "Quick test run"
 
         elif quality == "low":
             self.steps = 7_000
             self.extraction_rate = 0.05
+            self.similarity_threshold = 0.9
             self.sh_degree = 3
             self.sift_features = 2048
             self.description = "Fast results with decent quality"
@@ -84,6 +86,7 @@ class QualityPreset:
         elif quality == "medium":
             self.steps = 15_000
             self.extraction_rate = 0.1
+            self.similarity_threshold = 0.9
             self.sh_degree = 3
             self.sift_features = 4096
             self.description = "Balanced quality and speed"
@@ -91,13 +94,15 @@ class QualityPreset:
         elif quality == "high":
             self.steps = 28_000
             self.extraction_rate = 0.2
+            self.similarity_threshold = 0.8
             self.sh_degree = 3
             self.sift_features = 8192
             self.description = "High quality results"
 
         elif quality == "ultra":
             self.steps = 35_000
-            self.extraction_rate = 0.35
+            self.extraction_rate = 0.4
+            self.similarity_threshold = 0.85
             self.sh_degree = 3
             self.sift_features = 16_384
             self.description = "Maximum quality - slow but best results"

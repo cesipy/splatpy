@@ -22,15 +22,18 @@
 - **Python:** 3.10+
 - **FFmpeg**
 
-**⚠️ Note:** Due to CUDA requirements, this package cannot be installed via `pip install splatpy`.
-Please follow the instructions below.
+### ⚡ The Easy Way (Recommended)
+Simply install via pip:
 
+```bash
+pip install splatpy
+```
 
-### Using uv (recommended)
+### Using uv
 ```bash
 uv sync --python 3.10
 source .venv/bin/activate
-python src/main.py
+python path/to/your/file/using_splatpy.py # or uv run path/to/your/file/using_splatpy.py
 ```
 ### Using pip
 Install `torch` manually with the correct CUDA version, then install `splatpy` from source:

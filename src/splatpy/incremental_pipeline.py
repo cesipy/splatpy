@@ -2,9 +2,11 @@ import os
 import shutil
 from .config import *
 
+import torch
 import cv2 as cv
 import sqlite3
 import pycolmap
+from pytorch_msssim import ms_ssim
 
 
 FRAME_OVERLAP = 20
@@ -49,6 +51,42 @@ class COLMAP_Processor():
         for c, frame in enumerate(frames):
             cv.imwrite(os.path.join(self.frame_path, f"frame_{c:05d}.png"), frame)
 
+    def _remove_similar_frames(self, frames:list[cv.typing.MatLike],  threshold:float):
+        assert 0.0 <= threshold <= 1.0, "threshold must be between 0 and 1"
+
+        different_frames = []
+        buffer_tensors   = []
+
+        for current_frame in frames:
+            current_frame = cv.cvtColor(current_frame, cv.COLOR_BGR2RGB)
+            # frame is type numpy.ndarray with shape (h, w, 3), torch needs
+            curren_frame_tensor = torch.tensor(current_frame).permute(2, 0, 1).unsqueeze(0).float()  # shape (1, 3, h,w)
+            if len(different_frames) == 0:
+                different_frames.append(current_frame)
+                buffer_tensors.append(curren_frame_tensor)
+            else:
+                last_frame = different_frames[-1]
+                last_frame_tensor = buffer_tensors[-1]
+
+                similarity = ms_ssim(curren_frame_tensor, last_frame_tensor, data_range=255, size_average=True)
+                print(f"similarity: {similarity:.4f}")
+
+                if similarity <= threshold:
+                    different_frames.append(current_frame)
+                    buffer_tensors.append(curren_frame_tensor)
+
+
+        #final comparison: first vs middle
+        # sim = ms_ssim(
+        #     buffer_tensors[0], buffer_tensors[len(buffer_tensors)//2], data_range=255, size_average=True
+        # )
+        # print(f"similarity first vs middle: {sim}")
+
+        print(f"removed {len(frames) - len(different_frames)} similar frames, {len(different_frames)} frames remain")
+        return different_frames
+
+
+
 
 
     def extract_images(
@@ -77,6 +115,11 @@ class COLMAP_Processor():
         target_num_frames = max(1, int(length * extraction_rate))
         if DEBUGGING:
             print(f"Video has {int(length)} frames, extracting {target_num_frames} ({extraction_rate*100:.1f}%)")
+
+        #add warning if too few frames
+        if target_num_frames < 10:
+            #proper parning
+            print(f"Warning: Extracting only {target_num_frames} frames from video with {int(length)} frames. Consider increasing extraction rate.")
 
         # store laplacian variances for all frames
         vars = []
@@ -118,8 +161,11 @@ class COLMAP_Processor():
         if len(frames) < len(bucket_higests):
             if DEBUGGING:
                 print(f"Warning: Could only extract {len(frames)} frames out of {len(bucket_higests)} requested")
+        #remove frames that are too similar, based on ms_ssim
+        different_frames = self._remove_similar_frames(frames, threshold=0.7)
 
-        self._save_frames(frames)
+
+        self._save_frames(different_frames)
 
         return self.frame_path
 
