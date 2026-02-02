@@ -69,7 +69,7 @@ class COLMAP_Processor():
                 last_frame_tensor = buffer_tensors[-1]
 
                 similarity = ms_ssim(curren_frame_tensor, last_frame_tensor, data_range=255, size_average=True)
-                print(f"similarity: {similarity:.4f}")
+
 
                 if similarity <= threshold:
                     different_frames.append(current_frame)

@@ -86,14 +86,14 @@ class QualityPreset:
         elif quality == "medium":
             self.steps = 15_000
             self.extraction_rate = 0.1
-            self.similarity_threshold = 0.9
+            self.similarity_threshold = 0.88
             self.sh_degree = 3
             self.sift_features = 4096
             self.description = "Balanced quality and speed"
 
         elif quality == "high":
             self.steps = 28_000
-            self.extraction_rate = 0.2
+            self.extraction_rate = 0.15
             self.similarity_threshold = 0.8
             self.sh_degree = 3
             self.sift_features = 8192
@@ -101,7 +101,7 @@ class QualityPreset:
 
         elif quality == "ultra":
             self.steps = 35_000
-            self.extraction_rate = 0.4
+            self.extraction_rate = 0.3
             self.similarity_threshold = 0.85
             self.sh_degree = 3
             self.sift_features = 16_384

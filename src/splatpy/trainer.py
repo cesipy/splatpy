@@ -39,6 +39,19 @@ class Trainer():
     ):
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # validate CUDA availability
+        if not torch.cuda.is_available() and os.getenv("SPLATPY_ALLOW_CPU") != "1":
+            raise RuntimeError(
+                "CUDA is not available. splatpy requires a CUDA-capable GPU.\n\n"
+                "To fix this, install PyTorch with CUDA support:\n"
+                "  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124\n\n"
+                "Or use uv (recommended):\n"
+                "  uv pip install splatpy\n\n"
+                "See https://github.com/cesipy/splatpy#installation for details.\n\n"
+                "To override this check for testing, set: SPLATPY_ALLOW_CPU=1"
+            )
+
         print(f"parser data dir: {config.colmap_data_dir}")
 
         self.parser = Parser(
@@ -118,15 +131,7 @@ class Trainer():
         opacities = torch.sigmoid(self.splats["opacities"])
 
         image_ids = kwargs.pop("image_ids", None)
-        # TODO: implement appearance optimization
-        # if self.cfg.app_opt:
-        #     colors = self.app_module(
-        #         features=self.splats["features"],
-        #         embed_ids=image_ids,
-        #         dirs=means[None, :, :] - camtoworlds[:, None, :3, 3],
-        #         sh_degree=kwargs.pop("sh_degree", self.cfg.sh_degree),
-        #     )
-        #     colors = colors + self.splats["colors"]
+        # TODO: implement appearance optimization # if self.cfg.app_opt: #     colors = self.app_module( #         features=self.splats["features"], #         embed_ids=image_ids, #         dirs=means[None, :, :] - camtoworlds[:, None, :3, 3], #         sh_degree=kwargs.pop("sh_degree", self.cfg.sh_degree), #     ) #     colors = colors + self.splats["colors"]
         #     colors = torch.sigmoid(colors)
         # else:
         colors = torch.cat([self.splats["sh0"], self.splats["shN"]], 1)  # [N, K, 3]

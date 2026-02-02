@@ -17,35 +17,36 @@
 ## Installation
 
 **Requirements:**
-- **NVIDIA Driver:** Compatible with CUDA 12.4+ (Driver version ≥ 550.54 on Linux / ≥ 551.61 on Windows)
-- **CUDA Toolkit:** 12.4+ (required for compilation)
+- **NVIDIA GPU** with CUDA 12.4+ support (Driver version ≥ 550.54 on Linux / ≥ 551.61 on Windows)
 - **Python:** 3.10+
 - **FFmpeg**
 
-### ⚡ The Easy Way (Recommended)
-Simply install via pip:
+### Installing from PyPI
+PyTorch with CUDA is not available on standard PyPI, so you need a two-step installation:
 
 ```bash
+# Step 1: Install PyTorch with CUDA support
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+# Step 2: Install splatpy
 pip install splatpy
 ```
 
-### Using uv
+**Verify installation:**
 ```bash
-uv sync --python 3.10
+python -c "import splatpy; splatpy.check_installation()"
+```
+
+### Development Setup
+For development, `uv` handles CUDA dependencies automatically:
+
+```bash
+uv sync --python 3.10 --all-extras
 source .venv/bin/activate
-python path/to/your/file/using_splatpy.py # or uv run path/to/your/file/using_splatpy.py
-```
-### Using pip
-Install `torch` manually with the correct CUDA version, then install `splatpy` from source:
-
-```bash
-python3.10 -m venv venv
-source venv/bin/activate
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-pip install --no-build-isolation git+https://github.com/cesipy/splatpy.git
+pytest  # Run tests
 ```
 
-Note: `--no-build-isolation` is required because gsplat and fused-ssim need PyTorch during compilation.
+**Note:** If you get a CUDA error when running splatpy, make sure you installed PyTorch with CUDA support using the instructions above.
 
 
 ## Quick Start
@@ -65,11 +66,11 @@ print(f"Splat saved to: {output}")
 ```
 
 Quality presets:
-- `"test"`: Quick test run (1k steps, frames_modulo=30, sift_features=256)
-- `"low"`: Fast preview (10k steps, frames_modulo=30, sift_features=1024)
-- `"medium"`: Balanced quality (20k steps, frames_modulo=20, sift_features=2048) **[default]**
-- `"high"`: High quality (50k steps, frames_modulo=15, sift_features=4096)
-- `"ultra"`: Maximum quality (100k steps, frames_modulo=10, sift_features=8192)
+- `"test"`: Quick test run (1k steps, 5% frame extraction, sift_features=256)
+- `"low"`: Fast preview (7k steps, 5% frame extraction, sift_features=2048)
+- `"medium"`: Balanced quality (15k steps, 10% frame extraction, sift_features=4096) **[default]**
+- `"high"`: High quality (28k steps, 15% frame extraction, sift_features=8192)
+- `"ultra"`: Maximum quality (35k steps, 30% frame extraction, sift_features=16384)
 
 ### Advanced Usage
 

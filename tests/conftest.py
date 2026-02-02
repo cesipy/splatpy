@@ -40,6 +40,12 @@ def set_random_seed():
         torch.cuda.manual_seed_all(42)
 
 
+@pytest.fixture(autouse=True)
+def allow_cpu_for_tests(monkeypatch):
+    """Allow CPU mode for all tests by setting SPLATPY_ALLOW_CPU environment variable."""
+    monkeypatch.setenv("SPLATPY_ALLOW_CPU", "1")
+
+
 @pytest.fixture
 def sample_intrinsics():
     """Sample camera intrinsics matrix (800x600 image, f=800)."""
