@@ -244,6 +244,33 @@ class COLMAP_Processor():
         # shutil.rmtree(tmp_frame_path)
 
 
+    def densify_with_depth(
+        self,
+        device: str = "cuda",
+        stride: int = 8,
+        max_points: int = 200_000,
+    ):
+        """Run Depth Anything V2 to produce a denser point cloud. Call after create_colmap().
+
+        Returns:
+            (points, colors) numpy arrays, or (None, None) if reconstruction not found.
+        """
+        from .depth_estimator import densify_point_cloud
+
+        reconstruction_path = os.path.join(self.output_path_sparse, "0")
+        if not os.path.exists(reconstruction_path):
+            print("Warning: no COLMAP reconstruction found for depth densification.")
+            return None, None
+
+        reconstruction = pycolmap.Reconstruction(reconstruction_path)
+        return densify_point_cloud(
+            reconstruction=reconstruction,
+            images_dir=self.frame_path,
+            device=device,
+            stride=stride,
+            max_points=max_points,
+        )
+
     def clean_up(self):
         if DEBUGGING:
             pass

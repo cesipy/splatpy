@@ -51,6 +51,11 @@ examples:
         metavar="N",
         help="number of frames in orbit video (default: 240)",
     )
+    parser.add_argument(
+        "--depth-prior",
+        action="store_true",
+        help="use Depth Anything V2 to densify the point cloud (requires: pip install transformers accelerate)",
+    )
 
     args = parser.parse_args()
 
@@ -67,6 +72,7 @@ examples:
             output_dir=args.output,
             render_orbit=not args.no_orbit,
             orbit_frames=args.orbit_frames,
+            use_depth_prior=args.depth_prior,
         )
 
         print(f"\nDone! Splat saved to: {output_path}")
@@ -78,6 +84,7 @@ examples:
         sys.exit(1)
     except Exception as e:
         print(f"\nerror: {e}", file=sys.stderr)
+        raise e
         sys.exit(1)
 
 

@@ -11,7 +11,8 @@ def video_to_splat(
     quality: str = "medium",
     output_dir: str = "results",
     render_orbit: bool = True,
-    orbit_frames: int = 240
+    orbit_frames: int = 240,
+    use_depth_prior: bool = False,
 ) -> str:
     """Convert a video to a 3D Gaussian Splat.
     Works with different presets for speed vs. quality trade-offs.
@@ -60,7 +61,11 @@ def video_to_splat(
             sift_num_max_features=preset.sift_features,
         )
 
-        trainer = Trainer(config=config)
+        dense_points, dense_colors = None, None
+        if use_depth_prior:
+            dense_points, dense_colors = ip.densify_with_depth()
+
+        trainer = Trainer(config=config, dense_points=dense_points, dense_colors=dense_colors)
         trainer.train(preset.steps)
 
         if render_orbit:

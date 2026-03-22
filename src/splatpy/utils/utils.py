@@ -22,6 +22,8 @@ def create_splats_with_optimizers(
     init_extent: float = 3.0,
     init_opacity: float = 0.1,
     init_scale: float = 1.0,
+    dense_points: Optional[np.ndarray] = None,
+    dense_colors: Optional[np.ndarray] = None,
     means_lr: float = 1.6e-4,
     scales_lr: float = 5e-3,
     opacities_lr: float = 5e-2,
@@ -41,6 +43,12 @@ def create_splats_with_optimizers(
     if init_type == "sfm":
         points = torch.from_numpy(parser.points).float()
         rgbs = torch.from_numpy(parser.points_rgb / 255.0).float()
+        if dense_points is not None and len(dense_points) > 0:
+            dense_pts_t = torch.from_numpy(dense_points).float()
+            dense_rgb_t = torch.from_numpy(dense_colors).float()
+            points = torch.cat([points, dense_pts_t], dim=0)
+            rgbs = torch.cat([rgbs, dense_rgb_t], dim=0)
+            print(f"Init: {len(parser.points)} COLMAP + {len(dense_points)} depth points = {len(points):,} total")
     elif init_type == "random":
         points = init_extent * scene_scale * (torch.rand((init_num_pts, 3)) * 2 - 1)
         rgbs = torch.rand((init_num_pts, 3))

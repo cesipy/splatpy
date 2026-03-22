@@ -36,6 +36,8 @@ class Trainer():
     def __init__(
         self,
         config: TrainingConfig,
+        dense_points=None,
+        dense_colors=None,
     ):
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -96,6 +98,8 @@ class Trainer():
             sh_degree=config.sh_degree,
             feature_dim=feature_dim,
             device=self.device,
+            dense_points=dense_points,
+            dense_colors=dense_colors,
         )
         print(f"number of splats: {len(self.splats['means'])}")
 

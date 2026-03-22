@@ -61,9 +61,28 @@ The following video formats are supported:
 splatpy video.mp4
 splatpy video.mp4 --quality high --output my_results/
 splatpy video.mp4 --no-orbit
+splatpy video.mp4 --depth-prior   # denser point cloud via Depth Anything V2
 ```
 
 To view your result, drag and drop the `.ply` file into **[supersplat.playcanvas.com](https://supersplat.playcanvas.com)**.
+
+#### Depth Prior (optional)
+
+The `--depth-prior` flag uses [Depth Anything V2](https://github.com/DepthAnything/Depth-Anything-V2) to estimate dense depth maps for each frame, scale-aligns them to the COLMAP sparse reconstruction, and merges the unprojected points into the Gaussian initialization. This gives a much denser starting point and helps especially with textureless surfaces (walls, floors, smooth objects) where COLMAP struggles.
+
+First install the extra dependency:
+
+```bash
+pip install transformers accelerate
+# or
+pip install "splatpy[depth]"
+```
+
+Then run:
+
+```bash
+splatpy video.mp4 --depth-prior --quality high
+```
 
 ### Python API
 
