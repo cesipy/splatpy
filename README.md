@@ -55,7 +55,17 @@ The following video formats are supported:
 - AVI (`.avi`)
 - MOV (`.mov`)
 
-### Simple Usage (Recommended)
+### CLI (Recommended)
+
+```bash
+splatpy video.mp4
+splatpy video.mp4 --quality high --output my_results/
+splatpy video.mp4 --no-orbit
+```
+
+To view your result, drag and drop the `.ply` file into **[supersplat.playcanvas.com](https://supersplat.playcanvas.com)**.
+
+### Python API
 
 ```python
 from splatpy import video_to_splat
