@@ -169,7 +169,7 @@ def _unproject(
     y_cam = (vv - cy) / fy * d
     pts_cam = np.stack([x_cam, y_cam, d, np.ones_like(d)], axis=1)  # (N, 4)
     pts_world = (c2w @ pts_cam.T).T[:, :3]                          # (N, 3)
-    colors = rgb[vv.astype(int), uu.astype(int)]                     # (N, 3)
+    colors = rgb[vv.astype(int), uu.astype(int)] / 255.0             # (N, 3) in [0, 1]
 
     return pts_world, colors
 
