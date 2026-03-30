@@ -18,3 +18,5 @@ results
 .python-version
 uv.lock
 .coverage
+.claude
+tmp*
